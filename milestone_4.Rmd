@@ -1,0 +1,70 @@
+---
+title: "Milestone 4"
+author: "Maria Burzillo"
+date: "2/26/2020"
+output: bookdown::pdf_document2
+#output: html_document
+bibliography: bib.bib
+#biblio-style: "apalike"
+link_citations: true
+---
+
+# Intro
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::write_bib(c("knitr", "stringr"), "bib.bib", width = 60)
+library(gtable)
+library(stargazer)
+library(tidyverse)
+library(gt)
+```
+
+This is my pdf document. Please refer to the Github repository of my final project for further information.^[[Github repository](https://github.com/mburzillo/final_project)] I make use of @R-knitr, @R-stringr, and @knitr2015. 
+
+# gt Table of Random Happiness Data
+
+```{r fake_data, echo=FALSE}
+gender <- rbinom(20, 1, .5)
+happiness <- rnorm(20, .5, .25)
+age <- ceiling(rnorm(20, 40, 20))
+
+data = tibble(gender, happiness, age)
+
+
+table <- data %>% 
+  gt() %>%
+  tab_header(
+    title = "Happiness",
+    subtitle = "Male and Female Happiness Index by Age"
+  ) %>%
+  fmt_number(columns = vars(happiness)
+             ) %>%
+  tab_footnote(footnote = "Happiness Score from 0 (not at all happy) to 1 (extremely happy)", locations = cells_column_labels(columns = vars(happiness))) %>%
+  tab_footnote(footnote = "0 = Male, 1 = Female", locations = cells_column_labels(columns = vars(gender))) %>%
+  cols_label(
+    gender = "Gender",
+    happiness = "Happiness",
+    age = "Age"
+    
+  ) %>%
+  cols_move(vars(age), vars(gender)) %>%
+  cols_align("center")
+
+table
+
+m1 <- lm(happiness ~ gender, data = data )
+m2 <- lm(happiness ~ gender + age, data = data )
+
+
+```
+# Stargazer Regression Table Explaining Happiness by Gender and Age
+
+```{r stargazer, results="asis", echo=FALSE}
+stargazer(m1, m2, header = FALSE,
+          dep.var.labels=c("happiness"),
+          covariate.labels=c("gender", "age"))
+```
+
+
+# References

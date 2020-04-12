@@ -1,0 +1,233 @@
+---
+title: "Milestone 5"
+author: "Maria Burzillo"
+date: "3/28/2020"
+output: bookdown::pdf_document2
+#output: html_document
+bibliography: trounstine_bib.bib
+#biblio-style: "apalike"
+link_citations: true
+header_includes:
+  - \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+knitr::write_bib(c("knitr", "stringr"), "bib.bib", width = 60)
+library(haven)
+library(gtable)
+library(stargazer)
+library(tidyverse)
+library(gt)
+library(gtsummary)
+library(knitr)
+library(stargazer)
+```
+
+```{r data_imports, include = FALSE}
+
+# import both datasets
+
+rp <- read_dta("racial_polarization_winners.dta")
+fin_seg<- read_dta("fin_seg.dta")
+
+```
+
+
+```{r data_cleaning_appendix, include = FALSE}
+
+# make a list of the cities included in the analysis to filter out from the main
+# dataset as specified in the table
+
+cities_to_keep <- c("Austin City", "Baltimore City", "Charlotte City", "Chicago City", "Cleveland City", "Columbus City", "Dallas City", "Denver City", "Detroit City", "Houston City", "Indianapolis", "Jacksonville", "Los Angeles City", "Memphis City", "Milwaukee City", "New York City", "Oklahoma City City", "Philadelphia City", "Phoenix City", "San Antonio City", "San Diego City", "San Francisco City", "San Jose City", "Tucson City", "Washington City")
+
+# based on some investigation, the missing additional filter needed to replicate
+# appendix tables 1 and 2 is that biggest split cannot be NA. This was
+# discovered in attempting to create table 2. The number of elections with the
+# largest divides between each racial group were the same as in the table when
+# all results were included and only the summary stats differed in both tables
+# using the city and winner subset. So, I tried excluding all entries for which
+# biggestsplit was NA, and found that the resulting subset matched the
+# statistics in both tables.
+
+# create a subset of the data with the relevant cities where there is a winner
+# and the biggestsplit is not NA
+
+rp_sub <- rp %>%
+  filter(winner == 1) %>%
+  filter(cityname %in% cities_to_keep) %>%
+  filter(!(is.na(biggestsplit)))
+
+```
+
+
+
+# Introduction
+
+This is my pdf document. Please refer to the Github repository of my final project for further information.^[All sources, analysis, and further information are available on my [Github repository](https://github.com/mburzillo/final_project) for this project]. You can also access all of the original replication materials made available by Trounstine on Harvard Dataverse [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/4LZXTY&version=1.2). I make use of @trounstine_segregation_2016, @PencharzPaulB.2003Datd, @R-knitr, @R-stringr, and @knitr2015. 
+
+
+# Summary of Trounstine (2016)
+
+Trounstine's [*Segregation and Inequality in Public Goods*](https://onlinelibrary.wiley.com/doi/abs/10.1111/ajps.12227) attempts to explain differences in public goods provision and political polarization through a racial lens by examining the relationships between polarization, goods provision, and segregation. Trounstine measures segregation with Theil's H index, which measures the degree to which the diversity of a neighborhood differs from the diversity of the entire city. The main finding of the paper is that segregation, not simply diversity or political views, is an important determinant of both political polarization and spending on public goods. In general, segregation leads to the coincidence of racial and spatial political cleavages, which can make compromise on taxation and public spending difficult and tends to generally drive down the rate of spending on public goods. Because minorities are much more likely to live in racially segregated areas than whites, this suggests that public goods are also segregated across racial lines. 
+
+The first set of analyses that Trounstine runs assess the ability of segregation as measured by both a multigroup and two-group Theil's H Index to explain political polarization. A varitey of demographic controls and controls for election characteristics (e.g. Biracial contest v. not) are included. The exact model Trounstine employs is a multilevel mixed-effects linear regression with fixed effects for region and year and with ransom effects for cities. In the third specification of the model, Trounstine also includes a control for white ideology. 
+
+The second set of analyses looks at the ability of segregation as measured by the two-group measure of segregation to explain overall per capita city expenditures. Trounstine uses linear regressions with fixed effects for cities and robust standard errors clustered by city in this set of models. In the first model, Trounstine regresses direct general expenditure per capita on the segregation variable with controls. Then, changes the model controls for percent Black, Asian, and Latino residents to the 5 year changes in Black, Asian, and Latino residents. In the third specification, Trounstine adds controls for mean ideology of the city residents to the model from the first specification in the table. Finally, Trounstine also performs the same regression with the basic controls 6 more times, with public spending on roads, law enforcement, parks, sewers, housing/welfare and then own source revenue as the dependent variables. 
+
+Since the results suggested that more diverse communities were associated with higher overall levels of spending, Trounstine next sought to assess the relationships between increasing segregation, diversity and public spending. To do this, Trounstine divided the sample of city-years by quintiles of percent nonwhite and re-estimated the first of the regression models using segregation to explain public expenditures. Then, keeping all of the other variables at their mean values in the given quantile, she predicted the direct general expenditure per capita at the minimum and maximum levels of segregation for the quintile and took their difference. The results suggested that direct general expenditure declines as segregation increases no matter the original size of the minority population.  
+
+Finally, Trounstine uses an instrumental variable for the number of waterways to address concerns about the causal relationship between segregation and spending (e.g. the concern that some third variable is affecting both segregation and spending or vice versa and that the effect is not causal). She performs the same analyses to estimate the effects of the number of waterways on total public spending and public spending on specific goods. However, Trounstine does not add fixed effects at the city level since the number of waterways is constant in the dataset. Instead, she uses fixed effects for region and year. Trounstine also adds a lagged version of the dependent variable because there is a high correlation between observations over time for the same city and because local budgets change incrementally from previous years. She uses two-stage ordinary least squares for her model. In the first stage, Trounstine includes logged population as an instrument because people have tended to settle near water and thus large, older cities that have typically been more highly segregated tend to have more waterways.
+
+The results of all of the various specifications that Trounstine runs suggest that segregation has an important negative impact on public spending and political polarization in cities, and that increased political polarization may be the mechanism through which segregation leads to the negative impacts on public spending. 
+
+
+# A Beautiful Graphic
+
+```{r graphic, echo = FALSE}
+
+# create a graphic looking at the basic relationship between the two key
+# variables for segregation and political polarization. I wanted to do more, but
+# I spent way longer than I expected on figuring out how to replicate the tables
+# and the graphics in the actual paper needed the regressions to be done.
+
+rp_sub %>%
+  ggplot(aes(x = H_citytract_NHW_i, y = biggestsplit)) +
+  geom_point(aes(color = cityname)) +
+  geom_smooth(method = lm, se = F) +
+  theme_bw() +
+  ggtitle("Largest Racial Voting Divide v. Theil's H Index of Black-White Segregation ") +
+  xlab("Theil's H Index of Black-White Segregation, Interpolated") +
+  ylab("Largest Racial Voting Divide") +
+  labs(color = "City Name",
+    caption = "Scatter plot of the largest racial voting divide versus segregation as measured by the interpolated Theil's H\nIndex of Black-White Segregation in a city. This basic scatter plot includes all of the city data used for the\ninitial regressions in the paper. The basic linear regression line suggests the initial positive relationship\nbetween segregation and political polarization.") +
+  theme(
+    plot.caption = element_text(hjust = 0)
+  )
+  
+
+
+```
+
+
+# Appendix
+
+```{r import_data, include = FALSE}
+
+# select the relevant variables for the table
+
+rp_sub_a1 <- rp_sub %>%
+  select(biggestsplit, H_citytract_multi_i, H_citytract_NHW_i, diversityinterp, pctasianpopinterp, pctblkpopinterp, pctlatinopopinterp, medincinterp, pctrentersinterp, pctcollegegradinterp, biracial, nonpartisan, primary, logpop, whiteideology_fill2)
+
+# why are the exact variables H_citytract_NHW and whiteideology_fill not in the
+# data? Data variable names author uses and ones in the data don't exactly
+# match, but replication results are the same.
+
+```
+
+```{r table_a1, results="asis", echo = FALSE}
+
+# create a stargazer summary table for the relevant statistics of the racial
+# polarization data. I couldn't figure out how to change the text of the
+# statistic names at the top of the datat table. I also couldn't figure out how
+# to only not display additional digits for the income variable. May be
+# better to switch to gt for final version?
+
+stargazer(as.data.frame(rp_sub_a1),
+          omit.summary.stat = c("p25", "p75"),
+          title = "\\textbf{TABLE A1 Summary Statistics: Racial Polarization Data}",
+          column.labels = c("\\textbf{Variable}","\\textbf{Obs}", "\\textbf{Mean}", "\\textbf{Std. Dev.}", "\\textbf{Min}", "\\textbf{Max}"),
+          covariate.labels = c("Largest Racial Divide","\\emph{H} Index: Multigroup", "\\emph{H} Index: Two-Group", "Diversity", "\\% Asian", "\\% Black", "\\% Latino", "Median HH Income", "\\% Renters", "\\% College Degree", "Biracial Contest", "Nonpartisan Election", "Primary Election", "Population (logged)", "White Ideology"),
+          no.space = TRUE,
+          header = FALSE)
+
+```
+
+For comparison, the original table A1 from Trounstine (2016) is presented below:
+
+```{r image, echo = FALSE}
+include_graphics("tablea1.png")
+```
+
+
+
+```{r table_a2_data_manipulation, include = FALSE}
+
+# initialize variables to indicate if a racial divide had the biggest divide in
+# the election
+
+rp_sub$biggest_split_bw <- NA
+rp_sub$biggest_split_lw <- NA
+rp_sub$biggest_split_bl <- NA
+
+
+# change the NA value to 1 if the relevant divide was the biggest in the election
+
+rp_sub$biggest_split_bw[rp_sub$biggestsplit_gr == 1] <- 1
+rp_sub$biggest_split_lw[rp_sub$biggestsplit_gr == 2] <- 1
+rp_sub$biggest_split_bl[rp_sub$biggestsplit_gr == 3] <- 1
+
+
+```
+
+
+```{r table_a2_data_prep, include = FALSE}
+
+# generate the dataset of summary statistics to replicate the second appendix
+# table. Group by city name and then summarize the mean H indexes. Sum the
+# number of biggest splits by racial divide for each city
+
+rp_sub_2 <- rp_sub %>%
+  group_by(cityname) %>%
+  summarise(mean_multi_H = mean(H_citytract_multi_i),
+            mean_multi_two_group = mean(H_citytract_NHW_i),
+            sum_bw = sum(biggest_split_bw, na.rm = T),
+            sum_lw = sum(biggest_split_lw, na.rm = T),
+            sum_bl = sum(biggest_split_bl, na.rm = T))
+```
+
+```{r table_a2, echo = FALSE}
+
+# create appendix table A2 to present the summary statistics for cities included
+# in racial polarization data. Efforts to make columns narrower were
+# unsuccessful, so some of the labels in the column names were changed to make
+# the table fit. I also couldn't get the title to print out without including a
+# non-Null subtitle.
+
+gt(rp_sub_2) %>%
+  tab_header(title = md("**TABLE A2 Cities Included in Racial Polarization Data**"),
+             subtitle = "Replication") %>%
+  tab_spanner(
+      label = md("**Segregation: Mean *H* Index**"),
+      columns = vars(mean_multi_H, mean_multi_two_group)) %>%
+  tab_spanner(
+      label = md("**Largest Racial Divide, Number of Elections**"),
+      columns = vars(sum_bw, sum_lw, sum_bl)) %>%
+  fmt_number(columns = vars(mean_multi_H, mean_multi_two_group),
+             decimals = 3) %>%
+  cols_label(cityname = "City Name",
+             mean_multi_H = md("Multigroup"),
+             mean_multi_two_group = md("Two-Group"),
+             sum_bw = "Black/White",
+             sum_lw = "Latino/White",
+             sum_bl = "Black/Latino") %>%
+  cols_width(
+    vars(cityname) ~ px(10),
+    TRUE ~ px(20)
+  ) %>%
+  cols_align(
+    columns = vars(cityname),
+    align = "left"
+  ) %>%
+  tab_options(
+    table.margin.left = px(5), 
+    table.margin.right = px(5),
+    data_row.padding = px(1),
+    table.width = pct(90)
+  )
+
+```
+
+
+
+# Bibliography

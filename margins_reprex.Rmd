@@ -1,0 +1,171 @@
+---
+title: "margins_reprex"
+author: "Maria Burzillo"
+date: "4/3/2020"
+output: html_document
+---
+
+```{r data_imports, include = FALSE}
+suppressPackageStartupMessages(library(haven))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(margins))
+suppressPackageStartupMessages(library(reprex))
+suppressPackageStartupMessages(library(devtools))
+suppressPackageStartupMessages(library(lfe))
+# import both datasets
+
+rp <- read_dta("/Users/mariaburzillo/Desktop/GOV1006/final_project/racial_polarization_winners.dta")
+
+# create factor bariable for years
+rp$year.f <- as.factor(rp$year)
+
+
+# filter based on stata condition 
+
+rp <- rp %>%
+  filter(winner == 1)
+
+# run regression
+
+m1 <- lmer(biggestsplit ~ H_citytract_multi_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + year.f + south + midwest + west + (1 | geo_id2), data = rp)
+
+# subset rp to include only observations included in the regression (only
+# included certain cities and obs st. !(is.na(biggestsplit)))
+
+cities_to_keep <- c("Austin City", "Baltimore City", "Charlotte City", "Chicago City", "Cleveland City", "Columbus City", "Dallas City", "Denver City", "Detroit City", "Houston City", "Indianapolis", "Jacksonville", "Los Angeles City", "Memphis City", "Milwaukee City", "New York City", "Oklahoma City City", "Philadelphia City", "Phoenix City", "San Antonio City", "San Diego City", "San Francisco City", "San Jose City", "Tucson City", "Washington City")
+
+# create a subset of the data with the relevant cities where there is a winner
+# and the biggestsplit is not NA
+
+rp_sub <- rp %>%
+  filter(winner == 1) %>%
+  filter(cityname %in% cities_to_keep) %>%
+  filter(!(is.na(biggestsplit)))
+
+# find the 10th and 90th percentile to put in margins
+
+ten_percentile <- quantile(rp_sub$H_citytract_multi_i, c(.10), na.rm = T)
+ninety_percentile <- quantile(rp_sub$H_citytract_multi_i, c(.90), na.rm = T)
+
+
+class(rp$year)
+
+# attempt 1
+
+margins_1 <- margins(m1, at = list(H_citytract_multi_i = c(ten_percentile, ninety_percentile)))
+
+# attempt 2, all vars at mean except H_citytract_multi_i and year... what to do
+# about year? Stata seems to somehow still take the "mean" of it...some sort of
+# mean of the indicator of each one...
+
+summary(margins_1)
+
+marg2 <- margins(m1, at = list(H_citytract_multi_i = c(ten_percentile, ninety_percentile),
+                               diversityinterp = mean(rp$diversityinterp, na.rm = T),
+                               pctasianpopinterp = mean(rp$pctasianpopinterp, na.rm = T),
+                               pctblkpopinterp = mean(rp$pctblkpopinterp, na.rm = T),
+                               pctlatinopopinterp = mean(rp$pctlatinopopinterp, na.rm = T),
+                               medincinterp = mean(rp$medincinterp, na.rm = T),
+                               pctrentersinterp = mean(rp$pctrentersinterp, na.rm = T), 
+                               pctcollegegradinterp = mean(rp$pctcollegegradinterp, na.rm = T),
+                               biracial = mean(rp$biracial, na.rm = T),
+                               nonpartisan = mean(rp$nonpartisan, na.rm = T),
+                               primary = mean(rp$primary, na.rm = T),
+                               logpop = mean(rp$logpop, na.rm = T),
+                               south = mean(rp$south, na.rm = T),
+                               midwest = mean(rp$midwest, na.rm = T),
+                               west = mean(rp$west, na.rm = T) 
+                               ))
+
+summary(marg2)
+```
+
+```{r data_imports, include = FALSE}
+suppressPackageStartupMessages(library(haven))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(margins))
+suppressPackageStartupMessages(library(reprex))
+suppressPackageStartupMessages(library(plm))
+suppressPackageStartupMessages(library(devtools))
+suppressPackageStartupMessages(library(lfe))
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(starpolishr))
+suppressPackageStartupMessages(library(AER))
+# import both datasets
+
+rp <- read_dta("/Users/mariaburzillo/Desktop/GOV1006/final_project/racial_polarization_winners.dta")
+
+# create factor bariable for years
+rp$year.f <- as.factor(rp$year)
+
+
+# filter based on stata condition 
+
+rp <- rp %>%
+  filter(winner == 1)
+
+# run regression
+
+m1 <- lmer(biggestsplit ~ H_citytract_multi_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + year.f + south + midwest + west + (1 | geo_id2), data = rp)
+
+# subset rp to include only observations included in the regression (only included certain cities and obs st. !(is.na(biggestsplit)))
+
+cities_to_keep <- c("Austin City", "Baltimore City", "Charlotte City", "Chicago City", "Cleveland City", "Columbus City", "Dallas City", "Denver City", "Detroit City", "Houston City", "Indianapolis", "Jacksonville", "Los Angeles City", "Memphis City", "Milwaukee City", "New York City", "Oklahoma City City", "Philadelphia City", "Phoenix City", "San Antonio City", "San Diego City", "San Francisco City", "San Jose City", "Tucson City", "Washington City")
+
+# create a subset of the data with the relevant cities where there is a winner
+# and the biggestsplit is not NA
+
+rp_sub <- rp %>%
+  filter(winner == 1) %>%
+  filter(cityname %in% cities_to_keep) %>%
+  filter(!(is.na(biggestsplit)))
+
+# find the 10th and 90th percentile to put in margins
+ten_percentile <- quantile(rp_sub$H_citytract_multi_i, c(.10), na.rm = T)
+ninety_percentile <- quantile(rp_sub$H_citytract_multi_i, c(.90), na.rm = T)
+
+
+# attempt 1
+
+margins_1 <- margins(m1, at = list(H_citytract_multi_i = c(ten_percentile, ninety_percentile)))
+
+# attempt 2, all vars at mean except H_citytract_multi_i and year... what to do about year? Stata seems to somehow still take the "mean" of it...some sort of mean of the indicator of each one...
+
+#summary(margins_1)
+
+marg2 <- margins(m1, at = list(H_citytract_multi_i = c(ten_percentile, ninety_percentile),
+                               diversityinterp = mean(rp$diversityinterp, na.rm = T),
+                               pctasianpopinterp = mean(rp$pctasianpopinterp, na.rm = T),
+                               pctblkpopinterp = mean(rp$pctblkpopinterp, na.rm = T),
+                               pctlatinopopinterp = mean(rp$pctlatinopopinterp, na.rm = T),
+                               medincinterp = mean(rp$medincinterp, na.rm = T),
+                               pctrentersinterp = mean(rp$pctrentersinterp, na.rm = T), 
+                               pctcollegegradinterp = mean(rp$pctcollegegradinterp, na.rm = T),
+                               biracial = mean(rp$biracial, na.rm = T),
+                               nonpartisan = mean(rp$nonpartisan, na.rm = T),
+                               primary = mean(rp$primary, na.rm = T),
+                               logpop = mean(rp$logpop, na.rm = T),
+                               south = mean(rp$south, na.rm = T),
+                               midwest = mean(rp$midwest, na.rm = T),
+                               west = mean(rp$west, na.rm = T) 
+                               ))
+
+#summary(marg2)
+```
+
+
+``` r
+library(tidyverse)
+ 2 + 2 %>% ggplot()
+#> Error: `data` must be a data frame, or other object coercible by `fortify()`, not a numeric vector
+```
+
+```{r}
+library(tidyverse)
+ 2 + 2 %>% ggplot()
+```
+
