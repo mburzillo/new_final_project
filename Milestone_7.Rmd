@@ -15,15 +15,33 @@ header_includes:
   
 ---
 
+# Abstract
+
+This is an extension of Jessica Trounstine's "Segregation and Inequality in Public Goods" (2016). I was able to replicate the main results of Trounstine's paper in R to suggest that racial segregation contributes to political polarization and decreased spending on public goods. Additionally, I extend the analysis by imputing missing data and rerunning Trounstine's original model as a robustness check. 
 
 # Introduction
 
 This is my pdf document. Please refer to the Github repository of my final project for further information.^[All sources, analysis, and further information are available on my [Github repository](https://github.com/mburzillo/Final-Project-Final-Version) for this project]. You can also access all of the original replication materials made available by Trounstine on Harvard Dataverse [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/4LZXTY&version=1.2). I make use of @trounstine_segregation_2016, @PencharzPaulB.2003Datd, @R-knitr, @R-stringr, and @knitr2015. 
 
-
 # Summary of Trounstine (2016)
 
 Trounstine's [*Segregation and Inequality in Public Goods*](https://onlinelibrary.wiley.com/doi/abs/10.1111/ajps.12227) attempts to explain differences in public goods provision and political polarization through a racial lens by examining the relationships between polarization, goods provision, and segregation. Trounstine measures segregation with Theil's H index, which measures the degree to which the diversity of a neighborhood differs from the diversity of the entire city. The main finding of the paper is that segregation, not simply diversity or political views, is an important determinant of both political polarization and spending on public goods. In general, segregation leads to the coincidence of racial and spatial political cleavages, which can make compromise on taxation and public spending difficult and tends to generally drive down the rate of spending on public goods. Because minorities are much more likely to live in racially segregated areas than whites, this suggests that public goods are also segregated across racial lines. 
+
+# Literature Review
+
+This is my literature review. Sources will be added when a more thorough job is done for milestone #8.
+
+In the United States, residential segregation across racial lines remains a deeply entrenched problem in our society. 
+
+Neighborhood racial isolation has been associated with racial intolerance and increased political competition. Those who live in homogenous neighborhoods are also more likely to believe in negative stereotypes about out-groups. 
+
+On the city level, diversity is associated with increased racial tension, lower levels of cooperation, intolerance, and lower spending on public goods.
+
+A combination of homogenous neighborhoods within a diverse city leads to severe segregation and high degrees of racial tension. 
+
+Racial segregation has been associated with partisan political divides and a lack of cooperation across groups on city-wide policy. 
+
+
 
 # Replication
 
@@ -149,7 +167,8 @@ rp$year.f <- as.factor(rp$year)
 # apply the condition that winner == 1 as in the Stata code
 
 rp_1<- rp %>%
-  filter(winner == 1)
+  filter(winner == 1) %>%
+  mutate(medincinterp = medincinterp/1000)
 
 # regression specification. Apply REML = FALSE. The default for lmer() in R is
 # to optimize the restricted (residual) maximum likelihood (REML) whereas in
@@ -203,7 +222,12 @@ summary(m3)
 
 t1 <- stargazer(m1, m2, m3, omit = c("year", "south", "midwest", "west"),
                 header = FALSE,
-                title = "\\textbf{Racial Polarization in Segregated Cities}")
+                title = "\\textbf{Racial Polarization in Segregated Cities}",
+                single.row = TRUE,
+                no.space = FALSE,
+                add.lines = list(c("Wald Chi Squarred", "a", "b", "c")),
+                omit.stat = c("ll","rsq"),
+                covariate.labels = c("Multigroup H Index", "White/Nonwhite H Index", "Diversity", "Percent Asian", "Percent Black", "Percent Latino", "Medain HH Income (1000s)", "Percent Renters", "Percent College Degree", "Biracial Contest", "Nonpartisan Election", "Primary Election", "Population (logged)", "White Ideology", "Constant"))
 
 ```
 
