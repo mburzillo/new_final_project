@@ -1,0 +1,139 @@
+---
+title: "Extension Part 2"
+author: "Maria Burzillo"
+date: "4/15/2020"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+knitr::write_bib(c("knitr", "stringr"), "bib.bib", width = 60)
+library(haven)
+library(gtable)
+library(stargazer)
+library(tidyverse)
+library(gt)
+library(gtsummary)
+library(knitr)
+library(stargazer)
+library(lme4)
+library(margins)
+library(reprex)
+library(plm)
+library(devtools)
+library(lfe)
+library(Statamarkdown)
+library(readxl)
+library(starpolishr)
+library(AER)
+library(readxl)
+library(naniar)
+library(mice)
+```
+
+```{r data_imports, include = FALSE}
+
+# import both datasets
+
+rp <- read_dta("racial_polarization_winners.dta")
+fin_seg<- read_dta("fin_seg.dta")
+
+
+library(readxl)
+Places <- read_excel("Places.xlsx", skip = 1)
+
+places <- Places
+
+# add row numbers for fin_seg
+
+fin_seg$row_num <- as.integer(rownames(fin_seg))
+
+rp
+
+```
+
+
+```{r}
+
+places %>%
+  select(1:5) %>%
+  arrange(PlaceNAME10) %>%
+  filter(PlaceNAME10 == "Austin city")
+```
+
+
+```{r}
+rp%>%
+  select(geo_id2, cityname, fips_pla, fips_plaS, fips_stpla) %>%
+  group_by(geo_id2, cityname, fips_pla, fips_plaS, fips_stpla) %>%
+  summarise(n()) %>%
+  arrange(cityname)
+
+```
+
+```{r}
+
+#### try merging fips_plaS with PlaceFIPS10
+
+rp_merge <- left_join(rp, places, by = c("fips_stpla" = "PlaceFIPS10"))
+
+
+# these are the observations that are in the rp dataset but have no match from the other dataset...45 observations with no match
+setdiff(rp$fips_stpla, places$PlaceFIPS10)
+
+places %>%
+  filter(PlaceFIPS10 == "455000")
+
+rp %>%
+  filter(fips_stpla == "455000")
+
+rp %>%
+  filter(fips_stpla %in% setdiff(rp$fips_stpla, places$PlaceFIPS10)) %>%
+  select(fips_stpla,  cityname) %>%
+  unique()
+
+
+view(rp_merge)
+
+rp_merge %>%
+  select(fips_stpla,  cityname) %>%
+  unique()
+
+```
+
+```{r}
+## los angeles is 644000 in rp but 0644000 in other -> extra zero out front
+
+## phoenix city is 455000 in rp but 0455000
+
+## Tucson city is 477000 in rp but 0477000
+
+## San Diego 666000 in rp but 0666000
+
+## San Fran 667000 in rp but 0667000
+
+## San Jose 668000 in rp but 0463260
+
+## Denver 820000 in rp but 0820000
+
+rp$adjusted_fips <- NA
+
+rp$adjusted_fips <- ifelse(rp$fips_stpla == "644000","0644000", rp$fips_stpla)
+rp$adjusted_fips[rp$fips_stpla == "455000"] <- "0455000"
+rp$adjusted_fips[rp$fips_stpla == "477000"] <- "0477000"
+rp$adjusted_fips[rp$fips_stpla == "666000"] <- "0666000"
+rp$adjusted_fips[rp$fips_stpla == "667000"] <- "0667000"
+rp$adjusted_fips[rp$fips_stpla == "668000"] <- "0668000"
+rp$adjusted_fips[rp$fips_stpla == "820000"] <- "0820000"
+
+rp %>%
+  select(adjusted_fips, fips_stpla)
+
+rp_join <- left_join(rp, places, by = c("adjusted_fips" = "PlaceFIPS10"))
+
+setdiff(rp$adjusted_fips, places$PlaceFIPS10)
+  
+```
+

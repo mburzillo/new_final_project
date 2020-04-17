@@ -112,27 +112,16 @@ nrow(regression_ids_edit %>%
 
 ```{r data_cleaning_rp, include = FALSE}
 
-# make a list of the cities included in the analysis to filter out from the main
-# dataset as specified in the table
+# create a factor for year for the rp dataset
 
-cities_to_keep <- c("Austin City", "Baltimore City", "Charlotte City", "Chicago City", "Cleveland City", "Columbus City", "Dallas City", "Denver City", "Detroit City", "Houston City", "Indianapolis", "Jacksonville", "Los Angeles City", "Memphis City", "Milwaukee City", "New York City", "Oklahoma City City", "Philadelphia City", "Phoenix City", "San Antonio City", "San Diego City", "San Francisco City", "San Jose City", "Tucson City", "Washington City")
+rp_sub$year.f <- as.factor(rp_sub$year)
+rp$year.f <- as.factor(rp$year)
 
-# based on some investigation, the missing additional filter needed to replicate
-# appendix tables 1 and 2 is that biggest split cannot be NA. This was
-# discovered in attempting to create table 2. The number of elections with the
-# largest divides between each racial group were the same as in the table when
-# all results were included and only the summary stats differed in both tables
-# using the city and winner subset. So, I tried excluding all entries for which
-# biggestsplit was NA, and found that the resulting subset matched the
-# statistics in both tables.
+# apply the condition that winner == 1 as in the Stata code for the rp regressions
 
-# create a subset of the data with the relevant cities where there is a winner
-# and the biggestsplit is not NA
-
-rp_sub <- rp %>%
+rp_1<- rp %>%
   filter(winner == 1) %>%
-  filter(cityname %in% cities_to_keep) %>%
-  filter(!(is.na(biggestsplit)))
+  mutate(medincinterp = medincinterp/1000)
 
 ```
 
@@ -146,29 +135,10 @@ rp_sub <- rp %>%
 
 # lmer(dependent ~ predictors + (random predictors | group level))
 
-# panel data...
-
-# lmer and standard errors
-
-# create a fake smaller dataset and run the stata code and see the standard errors that pop up and see if they are the same 
-
-# run stata from an r markdown
-
 # reml v. log likelihood: default in r appears to be log-likelihood. stata defaults to maximum likelihood
 
 
 # perform a multi-level mixed-effects linear regression of biggest split on the multi-group H index with controls for Herfindahl Diversity Index, % Asian interpolated, % Black interpolated, % Latino interpolated, median household income interpolated, % renters interpolated, percent college grads interpolated, a dummy indicating if there were biracial candidates in the election, a dummy  indicating if the election was nonpartisan, an indicator if the election was a primary, and the log population. The regression also includes fixed effects for year and region and random effects for cities (geo_id2). Diversity is  included because of the claim that more diverse populations will have more heterogeneous political preferences. The other fixed effect control variables are included because they are known to be potentially correlated with segregation. winner == 1 requires that there was a winner in the election.
-
-# create a factor for year
-
-rp_sub$year.f <- as.factor(rp_sub$year)
-rp$year.f <- as.factor(rp$year)
-
-# apply the condition that winner == 1 as in the Stata code
-
-rp_1<- rp %>%
-  filter(winner == 1) %>%
-  mutate(medincinterp = medincinterp/1000)
 
 # regression specification. Apply REML = FALSE. The default for lmer() in R is
 # to optimize the restricted (residual) maximum likelihood (REML) whereas in
@@ -177,28 +147,11 @@ rp_1<- rp %>%
 
 m1 <- lmer(biggestsplit ~ H_citytract_multi_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + year.f + south + midwest + west + (1 | geo_id2), data = rp_1, REML=FALSE)
 
-summary(m1)
-
-```
-
-
-```{r include = FALSE}
-
 ## regression 2 Table 1
 
 # Perform the same regression as for Column 1 above but this time regress on the two-group calculation of Theil's H interpolated. It is unclear where the "diversity" variable is coming from, as the only variable related to diversity in the specificed dataset is diversityinterp. This is a problem that will need to be resolved. Essentially, this regression just tests an alternate specification to the first in which the segregation index in defined in terms of two-groups rather than multiple.
 
 m2 <- lmer(biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + year.f + south + midwest + west + (1 | geo_id2), data = rp_1, REML=FALSE)
-
-summary(m2)
-
-```
-
-
-
-```{r, include = FALSE}
-
-## regression 3 Table 1
 
 # perform the same regression as for column 2, but now add in a measure of
 # average white political ideology. The point of this is to control for ideology
@@ -230,28 +183,6 @@ t1 <- stargazer(m1, m2, m3, omit = c("year", "south", "midwest", "west"),
                 covariate.labels = c("Multigroup H Index", "White/Nonwhite H Index", "Diversity", "Percent Asian", "Percent Black", "Percent Latino", "Medain HH Income (1000s)", "Percent Renters", "Percent College Degree", "Biracial Contest", "Nonpartisan Election", "Primary Election", "Population (logged)", "White Ideology", "Constant"))
 
 ```
-
-# Margins from Table 1 Calculations
-
-## TO DO
-
-```{r, include = FALSE}
-
-# stata code: margins, at((mean) _all H_citytract_multi_i=(.23 .54))
-
-# estimate predictive margins at the mean of all covariates except for H_citytract_multi_i, which will be equal to .23 in the first specification and .54 in the second. Doing this to allows us to see the predicted effect on the biggest split if all the covariates were at their mean and H_citytract_multi_i were at .23 or .54.
-
-
-
-ten_percentile <- quantile(rp_sub$H_citytract_multi_i, c(.10), na.rm = T)
-ninety_percentile <- quantile(rp_sub$H_citytract_multi_i, c(.90), na.rm = T)
-
-margins_1 <- margins(m1, at = list(H_citytract_multi_i = c(ten_percentile, ninety_percentile)))
-
-summary(margins_1)
-
-```
-
 
 
 ```{r felm, include = FALSE}
@@ -290,15 +221,6 @@ fin_seg_sub <- fin_seg %>%
   filter(totaltractsf > 1 | is.na(totaltractsf), dgepercap_cpi != 0) %>%
   mutate(medinc_cpi = medinc_cpi/1000)
 
-
-
-# create a pdata.frame with the identifying info
-
-# fin_seg_sub <- pdata.frame(fin_seg_sub, index =c("geo_id2","year"))
-
-# lfe package lme
-
-# 0 is intruments, exclude = 0, cluster var
 
 # felm(y~x | factor(fe1) + factor(fe2) | 0 | clustervar)
 
@@ -1149,10 +1071,10 @@ fin_div <-fin %>% filter(dgepercap_cpi != 0)
 fin_div_tab <- tibble(
   Variable = "Diversity",
   Obs = nrow(fin_div),
-  Mean = mean(fin_div$H_citytract_NHW_i, na.rm = T),
-  SD = sd(fin_div$H_citytract_NHW_i, na.rm = T),
-  Min = min(fin_div$H_citytract_NHW_i, na.rm = T),
-  Max = max(fin_div$H_citytract_NHW_i, na.rm = T)
+  Mean = mean(fin_div$diversityinterp, na.rm = T),
+  SD = sd(fin_div$diversityinterp, na.rm = T),
+  Min = min(fin_div$diversityinterp, na.rm = T),
+  Max = max(fin_div$diversityinterp, na.rm = T)
 )
 
 print(fin_div_tab)
