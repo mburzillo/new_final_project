@@ -87,6 +87,7 @@ library(readxl)
 library(naniar)
 library(mice)
 library(gtsummary)
+library(VIM)
 ```
 
 ```{r data_imports, include = FALSE}
@@ -129,6 +130,8 @@ rp_1<- rp %>%
 
 # Extension 1
 
+One aspect of Trounstine's paper with room for improvement is that there is a large amount of missing data in her datasets upon which she bases her analyses. Using R's mice package (add citation), we can perform multiple imputation. By performing imputation multiple times, this helps account for the uncertainty inherent in the individual imputations. Before performing the multiple imputations, we will first look at the missing data to see if there are any patterns. 
+
 ```{r data_prep, include = FALSE}
 
 # select the relevant rows from the rp dataset
@@ -146,17 +149,45 @@ rp_impute <- rp %>%
 
 ```
 
-
 ```{r rp_missing_plot, echo = FALSE, warning = FALSE}
 
 # don't show the warning, it's just an irrelevant column missing a name
 
 # plot the missing variables if desired
 
-# gg_miss_var(rp_impute, show_pct = TRUE)
+rp_facet <- rp_impute %>%
+   select("medincinterp",
+             "biggestsplit", "diversityinterp",
+             "pctasianpopinterp", "pctblkpopinterp", "pctlatinopopinterp",
+             "pctrentersinterp", "pctcollegegradinterp", "biracial", "nonpartisan",
+               "south", "midwest", "west", "whiteideology_fill2", "year")
+
+gg_miss_var(rp_impute, show_pct = TRUE)
 
 
 ```
+
+The above plot reveals that biggestsplit and biracial are the two variables with by far the largest percentage of missing values. Both of these are missing approximately 50% of their observations. Since biggestsplit is the dependent variable in our analysis with this dataset, this is an important fact. 
+
+```{r}
+
+rp_aggr <- rp_impute %>%
+   select("medincinterp",
+             "biggestsplit", "diversityinterp",
+             "pctasianpopinterp", "pctblkpopinterp", "pctlatinopopinterp",
+             "pctrentersinterp", "pctcollegegradinterp", "biracial", "nonpartisan",
+               "south", "midwest", "west", "whiteideology_fill2")
+
+aggr_plot <- aggr(rp_aggr, bars = TRUE, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, cex.axis=.5, gap=3, ylab=c("Histogram of missing data","Pattern"))
+
+
+md.pattern(rp_aggr, rotate.names = TRUE)
+
+# this plot tells us that 42% of the data are not missing anything 
+```
+To better understand any potential patterns in missing data, we then plotted the pattern of missingness for only those variables missing values. From the plot on the right, we can see that approximately 42% of observations are complete. There seem to be a correspondence between missing a value for biggest split and missing biracial. There also seem to be about 2% of values for wich most of the variables are missing. However, most observations are not missing more than 2-3 values. 
+
+Finding no clear patterns in the missing data, I next performed mutliple imputations (with 10 iterations) on the dataset. A non-stochastic imputation method, Classification and Regression Trees (CART), was used instead of the default because of an error with matrix inversion caused by the data. Before examining the results of Trounstine's model using the imputed data, I first run some diagnostic tests of the imputation results to make sure that everything is running as expected. 
 
 ```{r, include = FALSE}
 # Perform multiple imputations using the cart method. Because of the time it
@@ -180,19 +211,31 @@ imp_1_rp <- mice(rp_impute, method = "cart", maxit = 10)
 
 
 ```{r}
+
+# ideally, the fits will intertwine and not exhibit any trends at later iterations. This seems to generally be the case. There are some issues with the results for some of the variables with very few missing values, which makes sense as we would expect the mean to be less reliable due to the law of large numbers and thus convergence is more difficult. However, since these are so few values, it is less important about how robust they are. 
+
 plot(imp_1_rp)
+
 ```
 
 ```{r}
 
+# we can also check the imputed values against the original values using stripplot(). Each column in each subplot represents a separate iteration. The magenta points represent the imputed data. The values of the variable in questions are along the y axis. We expect the spread of the data to be similar if the imputations were done well. If the data were missing completely at random, then the imputed data should have the same distribution as the original data. In particular, we want to be sure that the imputations are within a plausible range of the data. This is the case for all of our imputed variables, and there does not seem to be cause for alarm from these results. 
+
 # this looks good? All reasonable values...
 
 stripplot(imp_1_rp)
+
+stripplot(imp_1_rp, biggestsplit)
+
 ```
 
 ```{r}
 densityplot(imp_1_rp)
 ```
+
+
+
 
 ```{r}
 miss_var_summary(rp_impute)
@@ -201,7 +244,9 @@ miss_var_summary(rp_impute)
 ```{r rp_imputations, include = FALSE}
 
 # Now that we have imputed the missing data, we can re-run the analyses from the
-# original paper to see how and if this changes the analysis.
+# original paper to see how and if this changes the analysis. We can use the
+# with() function from the mice package to fit each of the imputed datasets to
+# the model and then pool the results afterwards.
 
 # regression 1: fit multiple imputed datasets
 
@@ -264,7 +309,7 @@ imp_3_rp_sum <- summary(pool_imp_3_rp)
 
 ```
 
-```{r}
+```{r results_printing_rp_impute_regressions, echo=FALSE}
 
 # print results of 1st regression
 

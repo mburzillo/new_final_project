@@ -280,7 +280,7 @@ meth[c("logpop")]=""
 
 meth[c("pctasianpopinterp", "pctlatinopopinterp", "pctblkpopinterp","dgepercap_cpi", "H_citytract_NHW_i", "medinc_cpi", "pctrentersinterp", "diversityinterp", "pctlocalgovworker_100", "pctover65", "pctcollegegradinterp")] = "cart"
 
-try5 <- mice(fin_imp, maxit=1, method = meth)
+try5 <- mice(fin_imp, maxit=1)
 
 try7 <- mice(fin_imp, maxit = 1, method = "cart")
 
