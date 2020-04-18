@@ -149,23 +149,37 @@ fin_imp_1 <-fin_seg %>%
          pctlocalgovworker_100, pctrentersinterp, pctover65,
          pctcollegegradinterp, logpop, highwayspercapNC_cpi, parkspercapNC_cpi,
          policepercapNC_cpi, sewerspercapNC_cpi, welfhoushealthNC_cpi,
-         genrevownpercap_cpi, H_citytract_multi_i, diversityinterp, pctblkpopinterp, pctasianpopinterp, pctlatinopopinterp, chng5pctblk, chng5pctlatino, chng5pctasian,medinc_cpi, pctlocalgovworker_100, pctrentersinterp, pctover65, pctcollegegradinterp, logpop, ideology_fill, population)
+         genrevownpercap_cpi, H_citytract_multi_i, diversityinterp, pctblkpopinterp, pctasianpopinterp, pctlatinopopinterp, chng5pctblk, chng5pctlatino, chng5pctasian,medinc_cpi, pctlocalgovworker_100, pctrentersinterp, pctover65, pctcollegegradinterp, logpop, ideology_fill, population, geo_id2)
 
 miss_var_summary(fin_imp_1)
 
-fin_imp <- fin_imp_1 %>%
-  select(H_citytract_NHW_i, dgepercap_cpi, highwayspercapNC_cpi, parkspercapNC_cpi,
-         policepercapNC_cpi, sewerspercapNC_cpi, welfhoushealthNC_cpi,
-         genrevownpercap_cpi, H_citytract_multi_i)
+#felm1 <- felm(dgepercap_cpi ~ H_citytract_NHW_i + diversityinterp + pctblkpopinterp + pctasianpopinterp + pctlatinopopinterp + medinc_cpi + pctlocalgovworker_100 + pctrentersinterp + pctover65 + pctcollegegradinterp + logpop | factor(geo_id2) |0| geo_id2, data = fin_seg_sub)
 
-miss_var_summary(fin_seg)
+fin_imp <- fin_imp_1 %>%
+  select(H_citytract_NHW_i, dgepercap_cpi, diversityinterp, pctblkpopinterp, pctasianpopinterp,
+         pctlatinopopinterp, medinc_cpi, pctlocalgovworker_100, pctrentersinterp, pctover65,
+         pctcollegegradinterp, logpop, geo_id2)
+
+miss_var_summary(fin_imp)
 
 
 ```
 
 
 ```{r}
-imp_1_fs <- mice(fin_imp)
+ini <- mice(fin_imp, maxit=0, print=F)
+
+meth <- ini$method
+
+meth[c("dgepercap_cpi", "diversityinterp", "pctblkpopinterp", "pctasianpopinterp",
+         "pctlatinopopinterp", "medinc_cpi", "pctlocalgovworker_100", "pctrentersinterp",
+         "pctover65", "pctcollegegradinterp", "logpop", "geo_id2")]=""
+
+meth[c("H_citytract_NHW_i")] = "cart"
+
+imp_1_fs <- mice(fin_imp, method = meth)
+
+miss_var_summary(complete(imp_1_fs,3))
 ```
 
 ```{r}

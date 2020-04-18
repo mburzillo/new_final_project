@@ -211,7 +211,7 @@ imp_1_rp <- mice(rp_impute, method = "cart", maxit = 10)
 
 First, I check the convergence of the algorithm used within mice() for each of the variables. For the most part, the fits intertwine and do not exhibit any trends at later iterations, as desired. There are some issues with the results for some of the variables with very few missing values (such as West and South), which makes sense as we would expect the mean to be less reliable due to the law of large numbers, and convergence is more difficult. Nevertheless, since there are so few of these values in the actual dataset, this is not a major concern.
 
-```{r}
+```{r imp_plot, echo = FALSE}
 
 # ideally, the fits will intertwine and not exhibit any trends at later iterations. This seems to generally be the case. There are some issues with the results for some of the variables with very few missing values, which makes sense as we would expect the mean to be less reliable due to the law of large numbers and thus convergence is more difficult. However, since these are so few values, it is less important about how robust they are. 
 
@@ -219,7 +219,9 @@ plot(imp_1_rp)
 
 ```
 
-```{r}
+We can also check the imputed values against the original values using stripplot(). Each column in each subplot represents a separate iteration. The magenta points represent the imputed data. The values of the variable in questions are along the y axis. We expect the spread of the data to be similar if the imputations were done well. If the data were missing completely at random, then the imputed data should have the same distribution as the original data. In particular, we want to be sure that the imputations are within a plausible range of the data. This is the case for all of our imputed variables, and there does not seem to be cause for alarm from these results. 
+
+```{r rp_stripplot, echo = FALSE}
 
 # we can also check the imputed values against the original values using stripplot(). Each column in each subplot represents a separate iteration. The magenta points represent the imputed data. The values of the variable in questions are along the y axis. We expect the spread of the data to be similar if the imputations were done well. If the data were missing completely at random, then the imputed data should have the same distribution as the original data. In particular, we want to be sure that the imputations are within a plausible range of the data. This is the case for all of our imputed variables, and there does not seem to be cause for alarm from these results. 
 
@@ -231,14 +233,15 @@ stripplot(imp_1_rp, biggestsplit)
 
 ```
 
-```{r}
+Finally, we can also look at the density plots for each variable's actual data and for their imputed data from each of the iterations, which are represented in magenta. Overall, the density plots align quite well for the variables with the most missing data, biracial and biggestsplit, and relatively well for most of the other variables with missing data. Again, the fit is less good for variables with fewer missing data points. 
+
+```{r rp_densityplot, echo = FALSE}
 densityplot(imp_1_rp)
 ```
 
+While the imputations are not perfect, there do not seem to be any major problems so far. Thus, we can now proceed with our analysis. We fit each of our ten imputed datasets to Trounstine's 3 models using this data and then pool the results for each. The results are as follows:
 
-
-
-```{r}
+```{r, include = FALSE}
 miss_var_summary(rp_impute)
 ```
 
@@ -284,7 +287,7 @@ imp_3_rp_sum <- summary(pool_imp_3_rp)
 ```
 
 
-# Extension 1 Racial Polarization Table
+## Extension 1 Racial Polarization Table
 
 ```{r results="asis", echo = FALSE}
 
@@ -296,6 +299,8 @@ imp_3_rp_sum <- summary(pool_imp_3_rp)
 #                title = "\\textbf{Racial Polarization in Segregated Cities}")
 
 ```
+
+
 ```{r echo = FALSE}
   
 #gt(imp_1_rp_sum_table) %>%
@@ -310,20 +315,40 @@ imp_3_rp_sum <- summary(pool_imp_3_rp)
 
 ```
 
-```{r results_printing_rp_impute_regressions, echo=FALSE}
+
+## Regression 1
+
+```{r results_printing_rp_impute_regressions_1, echo=FALSE}
 
 # print results of 1st regression
 
 imp_1_rp_sum_table <- as.data.frame(imp_1_rp_sum %>% 
-  select(term, estimate, std.error, p.value))
+  select(term, estimate, std.error, p.value)) %>%
+  head(13)
 print(imp_1_rp_sum_table)
 
+```
+
+The results of the model with the new dataset are slightly different in comparison to the original results from Trounstine (2016). With the imputed data, we now have a total of `r nrow(complete(rp_impute))` observations in our model as compared to the original model, which had only 91 observations. Interestingly, while the sign of the coefficient on the main variable of interest, the Theil's H segregation index is the same and the standard error has decreased slightly, the result has become statisically insignificant and the 95% confidence interval contains zero. Thus while these results still suggest that segregation may be associated with increased political polarization, they confer a lesser degree of certainty than Trounstine's original analysis. The coefficients for pctblkpopinterp, pctlatinopopinterp, and medincinterp have also switched signs, and all coefficients except indicators for a biracial and primary election are also statistically insignificant, as was the case in the original analysis. In general, the standard error on the coefficients has decreased slightly. 
+
+In the second and third regressions, the results are similar in comparison to the unimputed data to the first. Standard errors have reduced slightly. The main coefficient on segregation index has decreased in magnitude, although in these specifications, it remains statistically significant. The other coefficients except for biracial and primary are insignificant, and the coefficients on percent Asian, Black, and Latino have all switched signs. 
+
+## Regression 2
+
+```{r results_printing_rp_impute_regressions_2, echo=FALSE}
 
 # print results of 2nd regression
 
 imp_2_rp_sum_table <- as.data.frame(imp_2_rp_sum %>% 
-  select(term, estimate, std.error, p.value))
+  select(term, estimate, std.error, p.value)) %>%
+  head(13)
 print(imp_2_rp_sum_table)
+
+```
+
+## Regression 3
+
+```{r results_printing_rp_impute_regressions_3, echo=FALSE}
 
 # print results of 3rd regression
 
@@ -331,8 +356,6 @@ imp_3_rp_sum_table <- as.data.frame(imp_3_rp_sum %>%
   select(term, estimate, std.error, p.value))
 print(imp_3_rp_sum_table)
 ```
-
-
 
 # Appendix
 
@@ -371,6 +394,7 @@ m2 <- lmer(biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinter
 
 
 m3 <- lmer(biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + whiteideology_fill2 + year.f + south + midwest + west + (1 | geo_id2), data = rp_1, REML=FALSE)
+
 
 ```
 
