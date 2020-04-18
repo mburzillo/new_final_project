@@ -209,6 +209,7 @@ imp_1_rp <- mice(rp_impute, method = "cart", maxit = 10)
 
 ```
 
+First, I check the convergence of the algorithm used within mice() for each of the variables. For the most part, the fits intertwine and do not exhibit any trends at later iterations, as desired. There are some issues with the results for some of the variables with very few missing values (such as West and South), which makes sense as we would expect the mean to be less reliable due to the law of large numbers, and convergence is more difficult. Nevertheless, since there are so few of these values in the actual dataset, this is not a major concern.
 
 ```{r}
 
