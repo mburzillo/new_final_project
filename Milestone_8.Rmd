@@ -84,6 +84,9 @@ library(readxl)
 library(starpolishr)
 library(AER)
 library(readxl)
+library(naniar)
+library(mice)
+library(gtsummary)
 ```
 
 ```{r data_imports, include = FALSE}
@@ -113,8 +116,6 @@ nrow(regression_ids_edit %>%
 ```{r data_cleaning_rp, include = FALSE}
 
 # create a factor for year for the rp dataset
-
-rp_sub$year.f <- as.factor(rp_sub$year)
 rp$year.f <- as.factor(rp$year)
 
 # apply the condition that winner == 1 as in the Stata code for the rp regressions
@@ -125,7 +126,169 @@ rp_1<- rp %>%
 
 ```
 
-# Main Analysis
+
+# Extension 1
+
+```{r data_prep, include = FALSE}
+
+# select the relevant rows from the rp dataset
+
+rp_impute <- rp %>%
+  select("winner", "medincinterp",
+             "biggestsplit", "H_citytract_multi_i", "diversityinterp",
+             "pctasianpopinterp", "pctblkpopinterp", "pctlatinopopinterp",
+             "pctrentersinterp", "pctcollegegradinterp", "biracial", "nonpartisan",
+             "primary", "logpop", "year", "south", "midwest", "west", "geo_id2",
+             "H_citytract_NHW_i", "whiteideology_fill2") %>%
+  filter(winner == 1) %>%
+  mutate(medincinterp = medincinterp/1000,
+         year.f = as.factor(year))
+
+```
+
+
+```{r rp_missing_plot, echo = FALSE, warning = FALSE}
+
+# don't show the warning, it's just an irrelevant column missing a name
+
+# plot the missing variables if desired
+
+# gg_miss_var(rp_impute, show_pct = TRUE)
+
+
+```
+
+```{r, include = FALSE}
+# Perform multiple imputations using the cart method. Because of the time it
+# takes to run this function, I turned the results into a dataset to load in
+# instead of re-running everytime.
+
+imp_1_rp <- mice(rp_impute, method = "cart", maxit = 10)
+
+# write.csv(complete(imp_1_rp), "imp_1_rp.csv")
+
+# import new data frame with imputed data
+
+#imp_1_rp <- read_csv("imp_1_rp.csv")
+
+
+# can use the line below to check that there are now no missing values
+
+# gg_miss_var(complete(imp_1_rp), show_pct = TRUE)
+
+```
+
+
+```{r}
+plot(imp_1_rp)
+```
+
+```{r}
+
+# this looks good? All reasonable values...
+
+stripplot(imp_1_rp)
+```
+
+```{r}
+densityplot(imp_1_rp)
+```
+
+```{r}
+miss_var_summary(rp_impute)
+```
+
+```{r rp_imputations, include = FALSE}
+
+# Now that we have imputed the missing data, we can re-run the analyses from the
+# original paper to see how and if this changes the analysis.
+
+# regression 1: fit multiple imputed datasets
+
+fit_imp_1_rp <- with(imp_1_rp, lmer(formula = biggestsplit ~ H_citytract_multi_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + year.f + south + midwest + west + (1 | geo_id2), REML=FALSE))
+
+# pool and summarize the analyses
+
+pool_imp_1_rp <- pool(fit_imp_1_rp)
+imp_1_rp_sum <- summary(pool_imp_1_rp)
+
+## regression 2 Table 1: fit multiple imputed datasets
+
+#formula = biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + year.f + south + midwest + west + (1 | geo_id2)
+
+fit_imp_2_rp <- with(imp_1_rp, lmer(biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + year.f + south + midwest + west + (1 | geo_id2), REML=FALSE))
+                     
+# pool and summarize the analyses
+
+pool_imp_2_rp <- pool(fit_imp_2_rp)
+imp_2_rp_sum <- summary(pool_imp_2_rp)
+
+
+## regression 3 Table 1 with new data
+
+#formula = biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + whiteideology_fill2 + year.f + south + midwest + west + (1 | geo_id2)
+
+fit_imp_3_rp <- with(imp_1_rp, lmer(biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + whiteideology_fill2 + year.f + south + midwest + west + (1 | geo_id2), REML=FALSE))
+
+# pool and summarize the analyses
+
+pool_imp_3_rp <- pool(fit_imp_3_rp)
+imp_3_rp_sum <- summary(pool_imp_3_rp)
+
+```
+
+
+# Extension 1 Racial Polarization Table
+
+```{r results="asis", echo = FALSE}
+
+# create a stargazer table of the results
+
+#t1_imp <- stargazer(fit_imp_3_rp, 
+                    #omit = c("year.f", "south", "midwest", "west"),
+#                header = FALSE,
+#                title = "\\textbf{Racial Polarization in Segregated Cities}")
+
+```
+```{r echo = FALSE}
+  
+#gt(imp_1_rp_sum_table) %>%
+#  tab_header(title = md("**Extension 1 RP Regression 1**"),
+#             subtitle = "")
+
+
+#gt(imp_1_rp_sum_table)
+  
+#cols_label(term = md("**Term**"), estimate = md("**Estimate**"), std.error = md("**SD**"), p.value = md("**P Value**")) 
+
+
+```
+
+```{r}
+
+# print results of 1st regression
+
+imp_1_rp_sum_table <- as.data.frame(imp_1_rp_sum %>% 
+  select(term, estimate, std.error, p.value))
+print(imp_1_rp_sum_table)
+
+
+# print results of 2nd regression
+
+imp_2_rp_sum_table <- as.data.frame(imp_2_rp_sum %>% 
+  select(term, estimate, std.error, p.value))
+print(imp_2_rp_sum_table)
+
+# print results of 3rd regression
+
+imp_3_rp_sum_table <- as.data.frame(imp_3_rp_sum %>% 
+  select(term, estimate, std.error, p.value))
+print(imp_3_rp_sum_table)
+```
+
+
+
+# Appendix
 
 ```{r include = FALSE}
 
@@ -162,8 +325,6 @@ m2 <- lmer(biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinter
 
 
 m3 <- lmer(biggestsplit ~ H_citytract_NHW_i + diversityinterp + pctasianpopinterp + pctblkpopinterp + pctlatinopopinterp + medincinterp + pctrentersinterp +  pctcollegegradinterp + biracial + nonpartisan + primary + logpop + whiteideology_fill2 + year.f + south + midwest + west + (1 | geo_id2), data = rp_1, REML=FALSE)
-
-summary(m3)
 
 ```
 
@@ -366,7 +527,6 @@ table3b <- stargazer(felm2_4, felm2_5, felm2_6,
 ```
 
 
-
 ```{r results = "asis", echo = FALSE}
 
 # once I figure out how to make this sideways, I will combine a and b into this
@@ -380,7 +540,6 @@ table3c <- stargazer(felm2_1, felm2_2, felm2_3, felm2_4, felm2_5, felm2_6,
 
 ```
 
-# Figure 1
 
 # Main Analysis 4
 
@@ -417,16 +576,6 @@ ivreg1 <- ivreg(dgepercap_cpi ~ H_citytract_NHW_i + dgepercap_cpilag + diversity
                   pctcollegegradinterp + northeast + south + 
                   midwest + y5 + y6 + y7 + y8 + y9, data = fin_seg_1)
 
-summary(ivreg1)
-
-```
-
-
-
-```{r, include = FALSE}
-
-## regression 2 Table 5
-
 
 # Column 2
 
@@ -447,13 +596,6 @@ ivreg2 <- ivreg(highwayspercapNC_cpi ~ H_citytract_NHW_i + highwayspercapNC_cpil
                   pctcollegegradinterp + northeast + south + 
                   midwest + y5 + y6 + y7 + y8 + y9, data = fin_seg_2)
 
-summary(ivreg2)
-
-```
-
-```{r, include = FALSE}
-
-## regression 3 Table 5
 
 # Column 3
 
@@ -474,13 +616,6 @@ ivreg3 <- ivreg(policepercapNC_cpi ~ H_citytract_NHW_i + policepercapNC_cpilag +
                   pctcollegegradinterp + northeast + south + 
                   midwest + y5 + y6 + y7 + y8 + y9, data = fin_seg_3)
 
-summary(ivreg3)
-
-```
-
-```{r include = FALSE}
-
-## regression 4 Table 5
 
 # Column 4 this is the same regression as for column 1 but now we use the
 # dependent variable parkspercapNC_cpi to assess the effect of the instrumental
@@ -502,15 +637,6 @@ ivreg4 <- ivreg(parkspercapNC_cpi ~ H_citytract_NHW_i + parkspercapNC_cpilag + d
                   pctcollegegradinterp + northeast + south + 
                   midwest + y5 + y6 + y7 + y8 + y9, data = fin_seg_4)
 
-summary(ivreg4)
-
-```
-
-
-```{r include = FALSE}
-
-
-## regression 5 Table 5
 
 # Bottom Row
 
@@ -535,14 +661,6 @@ ivreg5 <- ivreg(sewerspercapNC_cpi ~ H_citytract_NHW_i + sewerspercapNC_cpilag +
                   pctcollegegradinterp + northeast + south + 
                   midwest + y5 + y6 + y7 + y8 + y9, data = fin_seg_5)
 
-summary(ivreg5)
-
-```
-
-
-```{r include = FALSE}
-
-## regression 6 Table 5
 
 # Column 3
 
@@ -563,14 +681,6 @@ ivreg6 <- ivreg(genrevownpercap_cpi ~ H_citytract_NHW_i + genrevownpercap_cpilag
                   pctcollegegradinterp + northeast + south + 
                   midwest + y5 + y6 + y7 + y8 + y9, data = fin_seg_6)
 
-summary(ivreg6)
-
-```
-
-
-```{r include = FALSE}
-
-## regression 7 Table 5
 
 # Column 2
 
@@ -618,6 +728,29 @@ table5b <- stargazer(ivreg5, ivreg6, ivreg7,
 
 
 ```{r import_data, include = FALSE}
+
+
+# make a list of the cities included in the analysis to filter out from the main
+# dataset as specified in the table
+
+cities_to_keep <- c("Austin City", "Baltimore City", "Charlotte City", "Chicago City", "Cleveland City", "Columbus City", "Dallas City", "Denver City", "Detroit City", "Houston City", "Indianapolis", "Jacksonville", "Los Angeles City", "Memphis City", "Milwaukee City", "New York City", "Oklahoma City City", "Philadelphia City", "Phoenix City", "San Antonio City", "San Diego City", "San Francisco City", "San Jose City", "Tucson City", "Washington City")
+
+# based on some investigation, the missing additional filter needed to replicate
+# appendix tables 1 and 2 is that biggest split cannot be NA. This was
+# discovered in attempting to create table 2. The number of elections with the
+# largest divides between each racial group were the same as in the table when
+# all results were included and only the summary stats differed in both tables
+# using the city and winner subset. So, I tried excluding all entries for which
+# biggestsplit was NA, and found that the resulting subset matched the
+# statistics in both tables.
+
+# create a subset of the data with the relevant cities where there is a winner
+# and the biggestsplit is not NA
+
+rp_sub <- rp %>%
+  filter(winner == 1) %>%
+  filter(cityname %in% cities_to_keep) %>%
+  filter(!(is.na(biggestsplit)))
 
 
 # select the relevant variables for the table
@@ -672,11 +805,6 @@ rp_sub$biggest_split_bw[rp_sub$biggestsplit_gr == 1] <- 1
 rp_sub$biggest_split_lw[rp_sub$biggestsplit_gr == 2] <- 1
 rp_sub$biggest_split_bl[rp_sub$biggestsplit_gr == 3] <- 1
 
-
-```
-
-
-```{r table_a2_data_prep, include = FALSE}
 
 # generate the dataset of summary statistics to replicate the second appendix
 # table. Group by city name and then summarize the mean H indexes. Sum the
@@ -735,34 +863,6 @@ gt(rp_sub_2) %>%
     data_row.padding = px(1),
     table.width = pct(90)
   )
-
-```
-
-
-```{r data_checks: r, include = FALSE}
-
-fin <-fin_seg %>%
-  filter(totaltractsf >1  | is.na(totaltractsf), dgepercap_cpi != 0) %>%
-  filter(!(is.na(dgepercap_cpi)), !(is.na(H_citytract_NHW_i)), !(is.na(diversityinterp)), !(is.na(pctblkpopinterp)),!(is.na(pctasianpopinterp)), !(is.na(pctlatinopopinterp)), !(is.na(medinc_cpi)),!(is.na(pctlocalgovworker_100)), !(is.na(pctrentersinterp)),!(is.na(pctover65)), !(is.na(pctcollegegradinterp)),!(is.na(logpop)))
-
-nrow(fin)
-
-# HOW WOULD I BUILD THIS TABLE/COULD I???
-
-nrow(fin %>%
-  filter(highwayspercapNC_cpi == 0 | policepercapNC_cpi == 0 | parkspercapNC_cpi == 0 | sewerspercapNC_cpi | welfhoushealthNC_cpi == 0 | genrevownpercap_cpi == 0 ))
-
-nrow(fin)
-
-length(unique(fin$geo_id2))
-
-length(fin$dgepercap_cpi)
-
-test <- fin %>%
-  filter(highwayspercapNC_cpi != 0)
-
-summary(test$dge)
-length(is.na(test$highwayspercapNC_cpi))
 
 ```
 
@@ -1167,18 +1267,6 @@ fin_population_tab <- tibble(
 
 a3_final <- full_join(a3_final, fin_population_tab)
 
-view(a3_final)
-
-fin_seg_sub <- fin_seg %>%
-  filter(totaltractsf > 1 | is.na(totaltractsf), dgepercap_cpi != 0) %>%
-  mutate(medinc_cpi = medinc_cpi/1000)
-
-
-fin_table <- fin %>%
-  select(dgepercap_cpi, H_citytract_NHW_i, diversityinterp, pctblkpopinterp, pctasianpopinterp, pctlatinopopinterp, medinc_cpi, pctlocalgovworker_100, pctrentersinterp, pctover65, pctcollegegradinterp, logpop)  
-
-length(unique(fin_seg$geo_id2))
-length(unique(fin_table$geo_id2))
 ```
 
 ```{r, echo = FALSE}
@@ -1193,27 +1281,6 @@ gt(a3_final) %>%
                Min = md("**Min**"),
                Max = md("**Max**")
                         ) 
-```
-
-
-```{r results="asis", echo = FALSE}
-stargazer(as.data.frame(a3_final),
-          omit.summary.stat = c("p25", "p75"),
-          title = "\\textbf{TABLE A3 Summary Statistics: Census of Government Finance and Population }",
-          header = FALSE)
-
-
-gt(rp_sub_2) %>%
-  cols_label(cityname = "City Name",
-             mean_multi_H = md("Multigroup"),
-             mean_multi_two_group = md("Two-Group"),
-             sum_bw = "Black/White",
-             sum_lw = "Latino/White",
-             sum_bl = "Black/Latino") %>%
-  )
-
-
-
 ```
 
 

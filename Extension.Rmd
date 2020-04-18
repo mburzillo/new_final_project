@@ -38,10 +38,6 @@ library(mice)
 rp <- read_dta("racial_polarization_winners.dta")
 fin_seg<- read_dta("fin_seg.dta")
 
-# add row numbers for fin_seg
-
-fin_seg$row_num <- as.integer(rownames(fin_seg))
-
 ```
 
 # Main Analysis

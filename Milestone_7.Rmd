@@ -125,7 +125,7 @@ rp_1<- rp %>%
 
 ```
 
-# Main Analysis
+# Appendix
 
 ```{r include = FALSE}
 
@@ -1356,8 +1356,7 @@ gt(rp_sub_2) %>%
              mean_multi_two_group = md("Two-Group"),
              sum_bw = "Black/White",
              sum_lw = "Latino/White",
-             sum_bl = "Black/Latino") %>%
-  )
+             sum_bl = "Black/Latino")
 
 
 
