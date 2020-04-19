@@ -98,8 +98,7 @@ imp_1_rp <- mice(rp_impute, maxit = 1, method = methods_1)
 
 view(rp_impute)
 
-imp_1_rp <- mice(rp_impute, method = "cart", maxit = 10)
-
+imp_1_rp <- mice(rp_impute, method = "cart", maxit = 3)
 
 write.csv(complete(imp_1_rp), "imp_1_rp.csv")
 
@@ -177,9 +176,12 @@ meth[c("dgepercap_cpi", "diversityinterp", "pctblkpopinterp", "pctasianpopinterp
 
 meth[c("H_citytract_NHW_i")] = "cart"
 
-imp_1_fs <- mice(fin_imp, method = meth)
+imp_1_fs <- mice(fin_imp, method = meth, maxit = 1)
 
 miss_var_summary(complete(imp_1_fs,3))
+
+
+
 ```
 
 ```{r}
