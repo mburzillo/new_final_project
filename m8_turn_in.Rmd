@@ -136,7 +136,7 @@ rp_aggr <- rp_impute %>%
              "pctrentersinterp", "pctcollegegradinterp", "biracial", "nonpartisan",
                "south", "midwest", "west", "whiteideology_fill2")
 
-aggr_plot <- aggr(rp_aggr, bars = TRUE, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, cex.axis=.5, gap=1, ylab=c("Histogram of missing data","Pattern"))
+aggr_plot <- aggr(rp_aggr, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, cex.axis=.5, gap=1, ylab=c("Histogram of missing data","Pattern"))
 
 # this plot tells us that 42% of the data are not missing anything 
 ```
@@ -279,6 +279,11 @@ imp_1_rp_sum_table <- as.data.frame(imp_1_rp_sum %>%
   select(term, estimate, std.error, p.value)) %>%
   head(13)
 print(imp_1_rp_sum_table)
+
+
+stargazer(imp_1_rp_sum_table,
+          header = "Racial Divide with Multigroup Segregation Index",
+          title = "\\textbf{Racial Polarization in Segregated Cities}")
 
 ```
 

@@ -149,6 +149,7 @@ rp_impute <- rp %>%
 
 ```
 
+
 ```{r rp_missing_plot, echo = FALSE, warning = FALSE}
 
 # don't show the warning, it's just an irrelevant column missing a name
@@ -184,14 +185,15 @@ aggr_plot <- aggr(rp_aggr, bars = TRUE, col=c('navyblue','red'), numbers=TRUE, s
 ```
 To better understand any potential patterns in missing data, we then plotted the pattern of missingness for only those variables missing values. From the plot on the right, we can see that approximately 42% of observations are complete. There seem to be a correspondence between missing a value for biggest split and missing biracial. There also seem to be about 2% of values for wich most of the variables are missing. However, most observations are not missing more than 2-3 values. 
 
-Finding no clear patterns in the missing data, I next performed mutliple imputations (with 10 iterations) on the dataset. A non-stochastic imputation method, Classification and Regression Trees (CART), was used instead of the default because of an error with matrix inversion caused by the data. Before examining the results of Trounstine's model using the imputed data, I first run some diagnostic tests of the imputation results to make sure that everything is running as expected. 
 
 ```{r, include = FALSE}
 # Perform multiple imputations using the cart method. Because of the time it
 # takes to run this function, I turned the results into a dataset to load in
 # instead of re-running everytime.
 
-imp_1_rp <- mice(rp_impute, method = "cart", maxit = 10)
+max_it = 20
+
+imp_1_rp <- mice(rp_impute, method = "cart", maxit = 20)
 
 # write.csv(complete(imp_1_rp), "imp_1_rp.csv")
 
@@ -205,7 +207,9 @@ imp_1_rp <- mice(rp_impute, method = "cart", maxit = 10)
 
 ```
 
-First, I check the convergence of the algorithm used within mice() for each of the variables. For the most part, the fits intertwine and do not exhibit any trends at later iterations, as desired. There are some issues with the results for some of the variables with very few missing values (such as West and South), which makes sense as we would expect the mean to be less reliable due to the law of large numbers, and convergence is more difficult. Nevertheless, since there are so few of these values in the actual dataset, this is not a major concern.
+Finding no clear patterns in the missing data, I next performed mutliple imputations (with `r max_it`  iterations) on the dataset. A non-stochastic imputation method, Classification and Regression Trees (CART), was used instead of the default because of an error with matrix inversion caused by the data. 
+
+Before examining the results of Trounstine's model using the imputed data, I first run some diagnostic tests of the imputation results to make sure that everything is running as expected. First, I check the convergence of the algorithm used within mice() for each of the variables. For the most part, the fits intertwine and do not exhibit any trends at later iterations, as desired. There are some issues with the results for some of the variables with very few missing values (such as West and South), which makes sense as we would expect the mean to be less reliable due to the law of large numbers, and convergence is more difficult. Nevertheless, since there are so few of these values in the actual dataset, this is not a major concern.
 
 ```{r imp_plot, echo = FALSE}
 
@@ -1234,9 +1238,18 @@ fin <-fin_seg %>%
          !(is.na(medinc_cpi)), !(is.na(pctlocalgovworker_100)), !(is.na(pctrentersinterp)),
          !(is.na(pctover65)), !(is.na(pctcollegegradinterp)), !(is.na(logpop)))
 
+fin_5 <-fin_seg %>%
+  filter(totaltractsf >1) %>%
+  filter(!(is.na(dgepercap_cpi)), !(is.na(H_citytract_NHW_i)), !(is.na(diversityinterp)),
+         !(is.na(pctblkpopinterp)), !(is.na(pctasianpopinterp)), !(is.na(pctlatinopopinterp)),
+         !(is.na(medinc_cpi)), !(is.na(pctlocalgovworker_100)), !(is.na(pctrentersinterp)),
+         !(is.na(pctover65)), !(is.na(pctcollegegradinterp)), !(is.na(logpop)))
+
+
 # create dge variable used in regression
 
 fin_dge <-fin %>% filter(dgepercap_cpi != 0)
+fin_dge_5 <-fin_5 %>% filter(dgepercap_cpi != 0)
 
 fin_dge_tab <- tibble(
   Variable = "Direct General Expenditure per Capita",
@@ -1248,6 +1261,11 @@ fin_dge_tab <- tibble(
 )
 
 print(fin_dge_tab)
+
+nrow(fin_dge) - nrow(fin_dge_5)
+
+length(setdiff(fin_dge$geo_id2, fin_dge_5$geo_id2))
+
 
 # creat summary for highways
 fin_hw <-fin %>% filter(highwayspercapNC_cpi != 0)

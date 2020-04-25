@@ -1,0 +1,37 @@
+---
+title: "mice reprex"
+author: "Maria Burzillo"
+date: "4/22/2020"
+output: pdf_document
+bibliography: final_proj_bib.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reprex)
+```
+
+
+
+```{r results = "asis"}
+library(mice)
+library(stargazer)
+library(huxtable)
+
+imp <- mice(nhanes2, print=F)
+fit_1 <- with(imp, lm(bmi ~ chl))
+fit_2 <- with(imp, lm(bmi ~ chl + hyp))
+
+pool.fit_1 <- pool(fit_1)
+summary_info_1 <- summary(pool.fit_1)
+
+pool.fit_2 <- pool(fit_2)
+summary_info_2 <- summary(pool.fit_2)
+
+stargazer(summary_info_1, summary_info_2)
+
+huxtable(summary_info_2)
+
+```
+
+@logan_segregation_2017
